@@ -6,7 +6,9 @@ cox.net.
 '''
 import sys
 import requests
-from BeautifulSoup import BeautifulSoup
+import re
+from bs4 import BeautifulSoup
+import jsbeautifier
 
 # need to capture a valid csrf token
 # first visit the login page to generate one
@@ -31,4 +33,10 @@ s.post('https://idm.east.cox.net/idm/coxnetlogin', data=auth)
 
 # now we should be authenticated, try visiting a protected page
 response = s.get('https://www.cox.com/internet/mydatausage.cox')
-print response.text
+soup = BeautifulSoup(response.text)
+# Looks like the utag data is in the second JS on this page
+script = soup.find_all('script')[1]
+# Going to un-minify this stuff that looks like Perl at first glance
+unmini_script = jsbeautifier.beautify(script.text)
+print unmini_script
+
