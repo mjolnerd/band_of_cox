@@ -12,14 +12,7 @@ from BeautifulSoup import BeautifulSoup
 # first visit the login page to generate one
 s = requests.session()
 response = s.get('https://www.cox.com/resaccount/sign-in.cox')
-'''
-# extract the token
-soup = BeautifulSoup(response.text)
-for n in soup('input'):
-    if n['name'] == '_csrf_token':
-        token = n['value']
-        break
-'''
+
 try:
     from creds import *
 except ImportError:
@@ -34,7 +27,6 @@ auth = {
     ,'onsuccess': 'https%3A%2F%2Fwww.cox.com%2Fresaccount%2Fhome.cox'
     ,'onfailure': 'http://www.cox.com/resaccount/sign-in.cox?onsuccess=https%3A%2F%2Fwww.cox.com%2Fresaccount%2Fhome.cox'
 }
-print auth
 s.post('https://idm.east.cox.net/idm/coxnetlogin', data=auth)
 
 # now we should be authenticated, try visiting a protected page
