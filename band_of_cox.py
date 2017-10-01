@@ -8,7 +8,6 @@ import sys
 import requests
 import re
 from bs4 import BeautifulSoup
-import jsbeautifier
 
 # need to capture a valid csrf token
 # first visit the login page to generate one
@@ -33,10 +32,27 @@ s.post('https://idm.east.cox.net/idm/coxnetlogin', data=auth)
 
 # now we should be authenticated, try visiting a protected page
 response = s.get('https://www.cox.com/internet/mydatausage.cox')
-soup = BeautifulSoup(response.text)
+soup = BeautifulSoup(response.text, "html.parser")
 # Looks like the utag data is in the second JS on this page
 script = soup.find_all('script')[1]
-# Going to un-minify this stuff that looks like Perl at first glance
-unmini_script = jsbeautifier.beautify(script.text)
-print unmini_script
 
+utag = {}
+# Example:
+#     "dateStamp": "1506819104",
+#
+# This isn't terribly robust or elegant.  Might be worth swapping in
+#  https://github.com/rspivak/slimit at some point. This is ok for now though.
+for line in script.text.splitlines():
+    if ':' in line:
+        line = line.strip()
+        line = line.replace('"','')
+        line = line.replace(',','')
+        fkey = line.split(':')[0].strip()
+        fval = line.split(':')[1].strip()
+        utag[fkey] = fval
+
+# Now we have a dict with all the data in utag.  Can probably do something useful with that.
+#  Let's just print Data Usage Meter out for now.
+dumstuff = ['dumUsage','dumLimit','dumDaysLeft','dumUtilization']
+for dum in dumstuff:
+    print "%s %s" % (dum, utag[dum])
