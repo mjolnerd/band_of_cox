@@ -6,19 +6,25 @@ cox.net.
 '''
 import sys
 import requests
-import re
+import json
+from datetime import datetime
 from bs4 import BeautifulSoup
+from elasticsearch import Elasticsearch
 
-# need to capture a valid csrf token
-# first visit the login page to generate one
+# We are going to store our results in Elasticsearch.
+es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
+
+# Set up a session for our pull from Cox
 s = requests.session()
-response = s.get('https://www.cox.com/resaccount/sign-in.cox')
 
+# The creds file holds a plaintext username/password for the cox.net account.
+#  Plaintext is naughty.  Only run this on hosts which are adequately secured.
+#  Secrets management is "hard".  May tackle this with something better later.
 try:
     from creds import *
 except ImportError:
     sys.exit()
-# now post to that login page with some valid credentials and the token
+# post to the login page with some valid credential
 auth = {
     'targetFN': 'COX.net'
     ,'emaildomain': '@cox.net'
@@ -35,24 +41,36 @@ response = s.get('https://www.cox.com/internet/mydatausage.cox')
 soup = BeautifulSoup(response.text, "html.parser")
 # Looks like the utag data is in the second JS on this page
 script = soup.find_all('script')[1]
+json_ext = json.loads(script.text.replace('var utag_data=','').replace('[','').replace(']',''))
 
-utag = {}
-# Example:
-#     "dateStamp": "1506819104",
-#
-# This isn't terribly robust or elegant.  Might be worth swapping in
-#  https://github.com/rspivak/slimit at some point. This is ok for now though.
-for line in script.text.splitlines():
-    if ':' in line:
-        line = line.strip()
-        line = line.replace('"','')
-        line = line.replace(',','')
-        fkey = line.split(':')[0].strip()
-        fval = line.split(':')[1].strip()
-        utag[fkey] = fval
+'''
+Map this using:
+PUT coxnet
+{
+  "mappings": {
+    "utag_data":{
+      "properties": {
+        "dateStamp":{
+          "type": "date",
+          "format": "epoch_second"
+        },
+        "dumDaysLeft":{
+          "type": "short"
+        },
+        "dumDaysLimit":{
+          "type": "short"
+        },
+        "dumUsage":{
+          "type": "short"
+        },
+        "dumUtilization":{
+          "type": "short"
+        }
+      }
+    }
+  }
+}
+'''
 
-# Now we have a dict with all the data in utag.  Can probably do something useful with that.
-#  Let's just print Data Usage Meter out for now.
-dumstuff = ['dumUsage','dumLimit','dumDaysLeft','dumUtilization']
-for dum in dumstuff:
-    print "%s %s" % (dum, utag[dum])
+# Now we have a nice shiny JSON object.  Lets stuff it into Elasticsearch for long term storage.
+es.index(index='coxnet', doc_type='utag_data', body=json_ext)
