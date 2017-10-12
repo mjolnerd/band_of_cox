@@ -39,9 +39,16 @@ s.post('https://idm.east.cox.net/idm/coxnetlogin', data=auth)
 # now we should be authenticated, try visiting a protected page
 response = s.get('https://www.cox.com/internet/mydatausage.cox')
 soup = BeautifulSoup(response.text, "html.parser")
-# Looks like the utag data is in the second JS on this page
-script = soup.find_all('script')[1]
-json_ext = json.loads(script.text.replace('var utag_data=','').replace('[','').replace(']',''))
+# Looks like the utag_data JS on this page needs to be found
+json_ext = ''
+for script in soup.find_all('script'):
+    if 'var utag_data=' in script.text:
+        json_ext = json.loads(script.text.replace('var utag_data=','').replace('[','').replace(']',''))
+        break
+
+if not json_ext:
+    print 'No valid utag_data found. Cox may have changed their page.'
+    sys.exit(1)
 
 '''
 Map this using:
