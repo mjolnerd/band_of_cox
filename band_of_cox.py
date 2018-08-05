@@ -11,6 +11,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from elasticsearch import Elasticsearch
 
+
 # We are going to store our results in Elasticsearch.
 es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
 
@@ -24,6 +25,7 @@ try:
     from creds import *
 except ImportError:
     sys.exit()
+
 # post to the login page with some valid credential
 auth = {
     'targetFN': 'COX.net'
@@ -34,7 +36,7 @@ auth = {
     ,'onsuccess': 'https%3A%2F%2Fwww.cox.com%2Fresaccount%2Fhome.cox'
     ,'onfailure': 'http://www.cox.com/resaccount/sign-in.cox?onsuccess=https%3A%2F%2Fwww.cox.com%2Fresaccount%2Fhome.cox'
 }
-s.post('https://idm.east.cox.net/idm/coxnetlogin', data=auth)
+s.post('https://idm.east.cox.net/idm/coxnetlogin', data=auth, verify=False)
 
 # now we should be authenticated, try visiting a protected page
 response = s.get('https://www.cox.com/internet/mydatausage.cox')
