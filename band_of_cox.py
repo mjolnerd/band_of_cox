@@ -13,7 +13,7 @@ from elasticsearch import Elasticsearch
 
 
 # We are going to store our results in Elasticsearch.
-es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
+es = Elasticsearch([{'host': '192.168.1.35', 'port': 9200}])
 
 # Set up a session for our pull from Cox
 s = requests.session()
